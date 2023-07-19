@@ -1,6 +1,9 @@
 import getRawBody from 'raw-body'
 import assert from 'http-assert'
 
+//
+// Phase 1: Store the measurements
+//
 const validate = (obj, key, { type }) => {
   assert(Object.keys(obj).includes(key) && obj[key] !== null, 400)
   if (type === 'date') {
