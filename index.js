@@ -50,3 +50,9 @@ export const createHandler = client => (req, res) =>
       res.statusCode = 500
       res.end(String(err))
     })
+
+//
+// Phase 2: Commit the measurements
+//
+
+// TODO
