@@ -1,7 +1,7 @@
 import getRawBody from 'raw-body'
 import assert from 'http-assert'
 import { validate } from './lib/validate.js'
-import timers from 'timers/promises'
+import timers from 'node:timers/promises'
 import { MerkleTree } from 'merkletreejs'
 import crypto from 'node:crypto'
 import { Message } from '@glif/filecoin-message'
