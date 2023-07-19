@@ -1,6 +1,10 @@
 import getRawBody from 'raw-body'
 import assert from 'http-assert'
 import { validate } from './lib/validate.js'
+import timers from 'timers/promises'
+import { MerkleTree } from 'merkletreejs'
+import crypto from 'node:crypto'
+import { Message } from '@glif/filecoin-message'
 
 //
 // Phase 1: Store the measurements
@@ -14,23 +18,15 @@ const handler = async (req, res, client) => {
   validate(measurement, 'peer_id', { type: 'string' })
   validate(measurement, 'started_at', { type: 'date' })
   validate(measurement, 'ended_at', { type: 'date' })
-  try {
-    await client.query(`
-      INSERT INTO measurements (job_id, peer_id, started_at, ended_at)
-      VALUES ($1, $2, $3, $4);
-    `, [
-      measurement.job_id,
-      measurement.peer_id,
-      new Date(measurement.started_at),
-      new Date(measurement.ended_at)
-    ])
-  } catch (err) {
-    if (err.constraint === 'measurements_pkey') {
-      assert.fail(409, 'Measurement Already Recorded')
-    } else {
-      throw err
-    }
-  }
+  await client.query(`
+    INSERT INTO measurements (job_id, peer_id, started_at, ended_at)
+    VALUES ($1, $2, $3, $4);
+  `, [
+    measurement.job_id,
+    measurement.peer_id,
+    new Date(measurement.started_at),
+    new Date(measurement.ended_at)
+  ])
   res.end('OK')
 }
 
@@ -45,5 +41,64 @@ export const createHandler = client => (req, res) =>
 //
 // Phase 2: Commit the measurements
 //
+const commit = async (client) => {
+  // Fetch measurements
+  const { rows: measurements } = await client.query(`
+    SELECT *
+    FROM measurements
+    WHERE committment_id IS NULL;
+  `)
 
-// TODO
+  // Create Merkle tree
+  const sha256 = str => crypto.createHash('sha256').update(str).digest()
+  const leaves = measurements
+    .map(measurement => sha256(JSON.stringify(measurement)))
+  const tree = new MerkleTree(leaves, sha256, { sortLeaves: true })
+
+  // Store Merkle tree
+  const { rows: [commitment] } = await client.query(`
+    INSERT INTO committments (tree)
+    VALUES ($1)
+    RETURNING id;
+  `, [
+    MerkleTree.marshallTree(tree)
+  ]);
+  await client.query(`
+    UPDATE measurements
+    SET committment_id = $1
+    WHERE id IN ($2);
+  `, [
+    commitment.id,
+    measurements.map(({ id }) => id)
+  ])
+
+  // Call contract with Merkle root hash
+  const root = tree.getRoot().toString('hex')
+  // TODO
+  const message = new Message({
+    to,
+    from,
+    nonce: await provider.getNonce(from),
+    value: 0,
+    method: 0,
+    params: ''
+  })
+  const messageWithGas = await provider.gasEstimateMessageGas(
+    message.toLotusType()
+  )
+  const lotusMessage = messageWithGas.toLotusType()
+  const msgValid = await provider.simulateMessage(lotusMessage)
+  assert(msgValid)
+  const signedMessage = await provider.wallet.sign(from, lotusMessage)
+  const { '/': cid } = await provider.sendMessage(signedMessage)
+  console.log({ cid })
+}
+
+const startCommitLoop = async () => {
+  while (true) {
+    await commit()
+    await timers.setTimeout(60_000)
+  }
+}
+
+startCommitLoop()
