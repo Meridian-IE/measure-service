@@ -5,6 +5,7 @@ import timers from 'timers/promises'
 import { MerkleTree } from 'merkletreejs'
 import crypto from 'node:crypto'
 import { Message } from '@glif/filecoin-message'
+import { FilecoinNumber } from '@glif/filecoin-number'
 
 //
 // Phase 1: Store the measurements
@@ -73,15 +74,15 @@ const commit = async (client) => {
   ])
 
   // Call contract with Merkle root hash
-  const root = tree.getRoot().toString('hex')
-  // TODO
   const message = new Message({
-    to,
-    from,
-    nonce: await provider.getNonce(from),
-    value: 0,
-    method: 0,
-    params: ''
+    to: MEASURE_CONTRACT_ADDRESS,
+    from: MEASURE_SERVICE_ADDRESS,
+    nonce: await provider.getNonce(MEASURE_SERVICE_ADDRESS),
+    value: new FilecoinNumber('0'),
+    method: MEASURE_CONTRACT_METHOD_NUMBER,
+    params: JSON.stringify({
+      root: tree.getRoot().toString('hex')
+    })
   })
   const messageWithGas = await provider.gasEstimateMessageGas(
     message.toLotusType()
