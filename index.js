@@ -57,7 +57,7 @@ const commit = async (client) => {
 
   // Store Merkle tree
   const { rows: [commitment] } = await client.query(`
-    INSERT INTO committments (tree)
+    INSERT INTO commitments (tree)
     VALUES ($1)
     RETURNING id;
   `, [
@@ -65,7 +65,7 @@ const commit = async (client) => {
   ]);
   await client.query(`
     UPDATE measurements
-    SET committment_id = $1
+    SET commitment_id = $1
     WHERE id IN ($2);
   `, [
     commitment.id,
