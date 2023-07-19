@@ -87,8 +87,6 @@ const commit = async (client) => {
     message.toLotusType()
   )
   const lotusMessage = messageWithGas.toLotusType()
-  const msgValid = await provider.simulateMessage(lotusMessage)
-  assert(msgValid)
   const signedMessage = await provider.wallet.sign(from, lotusMessage)
   const { '/': cid } = await provider.sendMessage(signedMessage)
   console.log({ cid })
