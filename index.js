@@ -7,6 +7,12 @@ import crypto from 'node:crypto'
 import { Message } from '@glif/filecoin-message'
 import { FilecoinNumber } from '@glif/filecoin-number'
 
+const {
+  MEASURE_CONTRACT_ADDRESS,
+  MEASURE_SERVICE_ADDRESS,
+  MEASURE_CONTRACT_METHOD_NUMBER
+} = process.env
+
 //
 // Phase 1: Store the measurements
 //
