@@ -8,13 +8,18 @@ import { Message } from '@glif/filecoin-message'
 import { FilecoinNumber } from '@glif/filecoin-number'
 import http from 'node:http'
 import { Client } from 'pg'
+import Filecoin, { HDWalletProvider } from '@glif/filecoin-wallet-provider'
 
 const {
   MEASURE_CONTRACT_ADDRESS,
   MEASURE_SERVICE_ADDRESS,
-  MEASURE_CONTRACT_METHOD_NUMBER
+  MEASURE_CONTRACT_METHOD_NUMBER,
+  WALLET_SEED
 } = process.env
 
+const provider = new Filecoin(new HDWalletProvider(WALLET_SEED), {
+  apiAddress: 'https://api.node.glif.io/rpc/v0'
+})
 const client = new Client()
 await client.connect()
 
