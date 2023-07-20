@@ -6,6 +6,8 @@ import { MerkleTree } from 'merkletreejs'
 import crypto from 'node:crypto'
 import { Message } from '@glif/filecoin-message'
 import { FilecoinNumber } from '@glif/filecoin-number'
+import http from 'node:http'
+import { Client } from 'pg'
 
 const {
   MEASURE_CONTRACT_ADDRESS,
@@ -13,10 +15,13 @@ const {
   MEASURE_CONTRACT_METHOD_NUMBER
 } = process.env
 
+const client = new Client()
+await client.connect()
+
 //
 // Phase 1: Store the measurements
 //
-const handler = async (req, res, client) => {
+const handler = async (req, res) => {
   assert.strictEqual(req.url, '/measurements', 404)
   assert.strictEqual(req.method, 'POST', 404)
   const body = await getRawBody(req, { limit: '100kb' })
@@ -37,13 +42,13 @@ const handler = async (req, res, client) => {
   res.end('OK')
 }
 
-export const createHandler = client => (req, res) =>
-  handler(req, res, client)
-    .catch(err => {
-      console.error(err)
-      res.statusCode = 500
-      res.end(String(err))
-    })
+http.createServer((req, res) => {
+  handler(req, res).catch(err => {
+    console.error(err)
+    res.statusCode = 500
+    res.end(String(err))
+  })
+}).listen()
 
 //
 // Phase 2: Commit the measurements
