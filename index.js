@@ -63,7 +63,7 @@ const commit = async (client) => {
   const { rows: measurements } = await client.query(`
     SELECT *
     FROM measurements
-    WHERE committment_id IS NULL;
+    WHERE commitment_id IS NULL;
   `)
 
   // Create Merkle tree
