@@ -78,7 +78,7 @@ const commit = async (client) => {
     VALUES ($1)
     RETURNING id;
   `, [
-    MerkleTree.marshallTree(tree)
+    MerkleTree.marshalTree(tree)
   ]);
   await client.query(`
     UPDATE measurements
