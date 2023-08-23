@@ -11,9 +11,9 @@ import { createHelia } from 'healia'
 import { dagCbor } from '@helia/dag-cbor'
 
 const {
-  MEASURE_CONTRACT_ADDRESS,
+  IE_CONTRACT_ADDRESS,
   MEASURE_SERVICE_ADDRESS,
-  MEASURE_CONTRACT_METHOD_NUMBER,
+  IE_CONTRACT_MEASURE_METHOD_NUMBER,
   WALLET_SEED
 } = process.env
 
@@ -76,11 +76,11 @@ const publish = async (client) => {
 
   // Call contract with CID
   const message = new Message({
-    to: MEASURE_CONTRACT_ADDRESS,
+    to: IE_CONTRACT_ADDRESS,
     from: MEASURE_SERVICE_ADDRESS,
     nonce: await provider.getNonce(MEASURE_SERVICE_ADDRESS),
     value: new FilecoinNumber('0'),
-    method: MEASURE_CONTRACT_METHOD_NUMBER,
+    method: IE_CONTRACT_MEASURE_METHOD_NUMBER,
     params: cid
   })
   const messageWithGas = await provider.gasEstimateMessageGas(
