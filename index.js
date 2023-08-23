@@ -2,13 +2,13 @@ import getRawBody from 'raw-body'
 import assert from 'http-assert'
 import { validate } from './lib/validate.js'
 import timers from 'node:timers/promises'
-import { MerkleTree } from 'merkletreejs'
-import crypto from 'node:crypto'
 import { Message } from '@glif/filecoin-message'
 import { FilecoinNumber } from '@glif/filecoin-number'
 import http from 'node:http'
 import { Client } from 'pg'
 import Filecoin, { HDWalletProvider } from '@glif/filecoin-wallet-provider'
+import { createHelia } from 'healia'
+import { dagCbor } from '@helia/dag-cbor'
 
 const {
   MEASURE_CONTRACT_ADDRESS,
@@ -22,6 +22,9 @@ const provider = new Filecoin(new HDWalletProvider(WALLET_SEED), {
 })
 const client = new Client()
 await client.connect()
+
+const helia = await createHelia()
+const heliaDagCbor = dagCbor(helia)
 
 //
 // Phase 1: Store the measurements
@@ -56,9 +59,9 @@ http.createServer((req, res) => {
 }).listen()
 
 //
-// Phase 2: Commit the measurements
+// Phase 2: Publish the measurements
 //
-const commit = async (client) => {
+const publish = async (client) => {
   // Fetch measurements
   const { rows: measurements } = await client.query(`
     SELECT *
@@ -66,54 +69,34 @@ const commit = async (client) => {
     WHERE commitment_id IS NULL;
   `)
 
-  // Create Merkle tree
-  const sha256 = str => crypto.createHash('sha256').update(str).digest()
-  const leaves = measurements
-    .map(measurement => sha256(JSON.stringify(measurement)))
-  const tree = new MerkleTree(leaves, sha256, { sortLeaves: true })
+  // Expose measurements
+  const cid = await heliaDagCbor.add(measurements)
+  await helia.pins.add(cid)
+  // TODO: Add cleanup
 
-  // Store Merkle tree
-  const { rows: [commitment] } = await client.query(`
-    INSERT INTO commitments (tree)
-    VALUES ($1)
-    RETURNING id;
-  `, [
-    MerkleTree.marshalTree(tree)
-  ]);
-  await client.query(`
-    UPDATE measurements
-    SET commitment_id = $1
-    WHERE id IN ($2);
-  `, [
-    commitment.id,
-    measurements.map(({ id }) => id)
-  ])
-
-  // Call contract with Merkle root hash
+  // Call contract with CID
   const message = new Message({
     to: MEASURE_CONTRACT_ADDRESS,
     from: MEASURE_SERVICE_ADDRESS,
     nonce: await provider.getNonce(MEASURE_SERVICE_ADDRESS),
     value: new FilecoinNumber('0'),
     method: MEASURE_CONTRACT_METHOD_NUMBER,
-    params: JSON.stringify({
-      root: tree.getRoot().toString('hex')
-    })
+    params: cid
   })
   const messageWithGas = await provider.gasEstimateMessageGas(
     message.toLotusType()
   )
   const lotusMessage = messageWithGas.toLotusType()
   const signedMessage = await provider.wallet.sign(from, lotusMessage)
-  const { '/': cid } = await provider.sendMessage(signedMessage)
-  console.log({ cid })
+  const res = await provider.sendMessage(signedMessage)
+  console.log(res)
 }
 
-const startCommitLoop = async () => {
+const startPublishLoop = async () => {
   while (true) {
-    await commit()
+    await publish()
     await timers.setTimeout(60_000)
   }
 }
 
-startCommitLoop()
+startPublishLoop()
