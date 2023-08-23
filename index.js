@@ -12,8 +12,8 @@ import { dagCbor } from '@helia/dag-cbor'
 
 const {
   IE_CONTRACT_ADDRESS,
-  MEASURE_SERVICE_ADDRESS,
   IE_CONTRACT_MEASURE_METHOD_NUMBER,
+  MEASURE_SERVICE_ADDRESS,
   WALLET_SEED
 } = process.env
 
