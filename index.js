@@ -7,7 +7,7 @@ import { FilecoinNumber } from '@glif/filecoin-number'
 import http from 'node:http'
 import { Client } from 'pg'
 import Filecoin, { HDWalletProvider } from '@glif/filecoin-wallet-provider'
-import { createHelia } from 'healia'
+import { createHelia } from 'helia'
 import { dagCbor } from '@helia/dag-cbor'
 
 const {
