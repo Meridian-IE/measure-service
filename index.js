@@ -2,29 +2,42 @@ import getRawBody from 'raw-body'
 import assert from 'http-assert'
 import { validate } from './lib/validate.js'
 import timers from 'node:timers/promises'
-import { Message } from '@glif/filecoin-message'
-import { FilecoinNumber } from '@glif/filecoin-number'
 import http from 'node:http'
-import { Client } from 'pg'
-import Filecoin, { HDWalletProvider } from '@glif/filecoin-wallet-provider'
 import { createHelia } from 'helia'
 import { dagCbor } from '@helia/dag-cbor'
+import { ethers } from 'ethers'
+import fs from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 
+// Configuration
 const {
-  IE_CONTRACT_ADDRESS,
-  IE_CONTRACT_MEASURE_METHOD_NUMBER,
-  MEASURE_SERVICE_ADDRESS,
-  WALLET_SEED
+  IE_CONTRACT_ADDRESS = '0xc7893bee1d78178120ea8d7c98906ae904eef5f0',
+  WALLET_SEED = 'test test test test test test test test test test test junk',
+  RPC_URL = 'https://api.calibration.node.glif.io/rpc/v1',
 } = process.env
 
-const provider = new Filecoin(new HDWalletProvider(WALLET_SEED), {
-  apiAddress: 'https://api.node.glif.io/rpc/v0'
-})
-const client = new Client()
-await client.connect()
+// Set up contract
+const provider = new ethers.providers.JsonRpcProvider(RPC_URL)
+const signer = ethers.Wallet.fromMnemonic(WALLET_SEED).connect(provider)
 
+const ieContract = new ethers.Contract(
+  IE_CONTRACT_ADDRESS,
+  JSON.parse(
+    await fs.readFile(
+      fileURLToPath(new URL('./abi.json', import.meta.url)),
+      'utf8'
+    )
+  ),
+  provider
+)
+const ieContractWithSigner = ieContract.connect(signer)
+
+// Set up IPFS
 const helia = await createHelia()
 const heliaDagCbor = dagCbor(helia)
+
+// Database
+const allMeasurements = []
 
 //
 // Phase 1: Store the measurements
@@ -38,15 +51,13 @@ const handler = async (req, res) => {
   validate(measurement, 'peer_id', { type: 'string' })
   validate(measurement, 'started_at', { type: 'date' })
   validate(measurement, 'ended_at', { type: 'date' })
-  await client.query(`
-    INSERT INTO measurements (job_id, peer_id, started_at, ended_at)
-    VALUES ($1, $2, $3, $4);
-  `, [
-    measurement.job_id,
-    measurement.peer_id,
-    new Date(measurement.started_at),
-    new Date(measurement.ended_at)
-  ])
+  allMeasurements.push({
+    jobId: measurement.job_id,
+    peerId: measurement.peer_id,
+    startedAt: new Date(measurement.started_at),
+    endedAt: new Date(measurement.ended_at),
+    cid: null
+  })
   res.end('OK')
 }
 
@@ -61,35 +72,30 @@ http.createServer((req, res) => {
 //
 // Phase 2: Publish the measurements
 //
-const publish = async (client) => {
+const publish = async () => {
   // Fetch measurements
-  const { rows: measurements } = await client.query(`
-    SELECT *
-    FROM measurements
-    WHERE commitment_id IS NULL;
-  `)
+  const measurements = allMeasurements.filter(m => m.cid === null)
+  if (!measurements.length) {
+    console.log('No measurements to publish')
+    return
+  }
+  console.log(`Publishing ${measurements.length} measurements`)
 
-  // Expose measurements
+  // Share measurements
   const cid = await heliaDagCbor.add(measurements)
+  console.log(`CID: ${cid}`)
   await helia.pins.add(cid)
   // TODO: Add cleanup
 
   // Call contract with CID
-  const message = new Message({
-    to: IE_CONTRACT_ADDRESS,
-    from: MEASURE_SERVICE_ADDRESS,
-    nonce: await provider.getNonce(MEASURE_SERVICE_ADDRESS),
-    value: new FilecoinNumber('0'),
-    method: IE_CONTRACT_MEASURE_METHOD_NUMBER,
-    params: cid
-  })
-  const messageWithGas = await provider.gasEstimateMessageGas(
-    message.toLotusType()
-  )
-  const lotusMessage = messageWithGas.toLotusType()
-  const signedMessage = await provider.wallet.sign(from, lotusMessage)
-  const res = await provider.sendMessage(signedMessage)
-  console.log(res)
+  console.log('ie.addMeasurement()...')
+  await ieContractWithSigner.addMeasurement(cid.toString())
+  console.log('ie.addMeasurement()')
+
+  // Mark measurements as shared
+  for (const m of measurements) {
+    m.cid = cid
+  }
 }
 
 const startPublishLoop = async () => {
