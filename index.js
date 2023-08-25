@@ -83,7 +83,10 @@ const publish = async () => {
 
   // Call contract with CID
   console.log('ie.addMeasurement()...')
-  const { value: roundIndex } = await ieContractWithSigner.addMeasurement(cid.toString())
+  const tx = await ieContractWithSigner.addMeasurement(cid.toString())
+  const receipt = await tx.wait()
+  const event = receipt.events.find(e => e.event === 'MeasurementAdded')
+  const { roundIndex } = event.args
   console.log('Measurements added to round', roundIndex.toString())
 
   // Mark measurements as shared
@@ -94,7 +97,8 @@ const publish = async () => {
   // List measurements
   console.log('ie.getRound()...')
   const round = await ieContract.getRound(roundIndex)
-  console.log(`Measurements this round: ${round[1]}`)
+  console.log('Measurements this round:')
+  console.log(round[1])
   console.log('Done!')
 }
 
