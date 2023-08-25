@@ -8,10 +8,11 @@ import { dagCbor } from '@helia/dag-cbor'
 import { ethers } from 'ethers'
 import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+import { db } from './lib/db.js'
 
 // Configuration
 const {
-  IE_CONTRACT_ADDRESS = '0xc7893bee1d78178120ea8d7c98906ae904eef5f0',
+  IE_CONTRACT_ADDRESS = '0xf4bbf02a3c7c7412e5351a1b0a948cfe509a1c7b',
   WALLET_SEED = 'test test test test test test test test test test test junk',
   RPC_URL = 'https://api.calibration.node.glif.io/rpc/v1',
 } = process.env
@@ -36,9 +37,6 @@ const ieContractWithSigner = ieContract.connect(signer)
 const helia = await createHelia()
 const heliaDagCbor = dagCbor(helia)
 
-// Database
-const allMeasurements = []
-
 //
 // Phase 1: Store the measurements
 //
@@ -51,11 +49,11 @@ const handler = async (req, res) => {
   validate(measurement, 'peer_id', { type: 'string' })
   validate(measurement, 'started_at', { type: 'date' })
   validate(measurement, 'ended_at', { type: 'date' })
-  allMeasurements.push({
+  db.measurements.push({
     jobId: measurement.job_id,
     peerId: measurement.peer_id,
-    startedAt: new Date(measurement.started_at),
-    endedAt: new Date(measurement.ended_at),
+    startedAt: measurement.started_at,
+    endedAt: measurement.ended_at,
     cid: null
   })
   res.end('OK')
@@ -74,34 +72,36 @@ http.createServer((req, res) => {
 //
 const publish = async () => {
   // Fetch measurements
-  const measurements = allMeasurements.filter(m => m.cid === null)
-  if (!measurements.length) {
-    console.log('No measurements to publish')
-    return
-  }
+  const measurements = db.measurements.filter(m => m.cid === null)
   console.log(`Publishing ${measurements.length} measurements`)
 
   // Share measurements
   const cid = await heliaDagCbor.add(measurements)
-  console.log(`CID: ${cid}`)
+  console.log(`Measurements packaged in ${cid}`)
   await helia.pins.add(cid)
   // TODO: Add cleanup
 
   // Call contract with CID
   console.log('ie.addMeasurement()...')
-  await ieContractWithSigner.addMeasurement(cid.toString())
-  console.log('ie.addMeasurement()')
+  const { value: roundIndex } = await ieContractWithSigner.addMeasurement(cid.toString())
+  console.log('Measurements added to round', roundIndex.toString())
 
   // Mark measurements as shared
   for (const m of measurements) {
     m.cid = cid
   }
+
+  // List measurements
+  console.log('ie.getRound()...')
+  const round = await ieContract.getRound(roundIndex)
+  console.log(`Measurements this round: ${round[1]}`)
+  console.log('Done!')
 }
 
 const startPublishLoop = async () => {
   while (true) {
     await publish()
-    await timers.setTimeout(60_000)
+    await timers.setTimeout(10_000)
   }
 }
 
