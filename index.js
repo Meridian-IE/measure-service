@@ -80,7 +80,6 @@ const publish = async () => {
   const cid = await heliaDagCbor.add(measurements)
   console.log(`Measurements packaged in ${cid}`)
   await helia.pins.add(cid)
-  // TODO: Add cleanup
 
   // Call contract with CID
   console.log('ie.addMeasurement()...')
