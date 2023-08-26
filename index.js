@@ -93,6 +93,9 @@ const publish = async () => {
   const { roundIndex } = event.args
   console.log('Measurements added to round', roundIndex.toString())
 
+  // Prepare cleanup
+  db.cids.push({ cid, roundIndex })
+
   // Mark measurements as shared
   for (const m of measurements) {
     m.cid = cid
@@ -109,3 +112,16 @@ const startPublishLoop = async () => {
 }
 
 startPublishLoop()
+
+//
+// Cleanup
+//
+ieContract.on('RoundStart', (roundIndex) => {
+  console.log('Event: RoundStart', roundIndex.toString())
+  const cids = db.cids.filter(c => c.roundIndex.lt(roundIndex.sub(1)))
+  for (const { cid } of cids) {
+    console.log('Unpinning', cid)
+    helia.pins.rm(cid).catch(console.error)
+  }
+  db.cids = db.cids.filter(c => !cids.includes(c))
+})
