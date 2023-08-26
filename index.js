@@ -9,6 +9,7 @@ import { ethers } from 'ethers'
 import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { db } from './lib/db.js'
+import pRetry from 'p-retry'
 
 // Configuration
 const {
@@ -83,8 +84,11 @@ const publish = async () => {
 
   // Call contract with CID
   console.log('ie.addMeasurement()...')
-  const tx = await ieContractWithSigner.addMeasurement(cid.toString())
-  const receipt = await tx.wait()
+  const tx = await pRetry(
+    () => ieContractWithSigner.addMeasurement(cid.toString()),
+    20
+  )
+  const receipt = await pRetry(() => tx.wait(), 10)
   const event = receipt.events.find(e => e.event === 'MeasurementAdded')
   const { roundIndex } = event.args
   console.log('Measurements added to round', roundIndex.toString())
