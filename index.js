@@ -84,10 +84,25 @@ const publish = async () => {
   // Call contract with CID
   console.log('ie.addMeasurement()...')
   const tx = await pRetry(
-    () => ieContractWithSigner.addMeasurement(cid.toString()),
-    20
+    async () => {
+      try {
+        return await ieContractWithSigner.addMeasurement(cid.toString())
+      } catch (err) {
+        console.error('addMeasurement()', err)
+      }
+    },
+    30
   )
-  const receipt = await pRetry(() => tx.wait(), 10)
+  const receipt = await pRetry(
+    async () => {
+      try {
+        return await tx.wait()
+      } catch (err) {
+        console.error('tx.wait()', err)
+      }
+    },
+    10
+  )
   const event = receipt.events.find(e => e.event === 'MeasurementAdded')
   const { roundIndex } = event.args
   console.log('Measurements added to round', roundIndex.toString())
