@@ -10,6 +10,7 @@ import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { db } from './lib/db.js'
 import pRetry from 'p-retry'
+import { FsBlockstore } from 'blockstore-fs'
 
 // Configuration
 const {
@@ -35,7 +36,9 @@ const ieContract = new ethers.Contract(
 const ieContractWithSigner = ieContract.connect(signer)
 
 // Set up IPFS
-const helia = await createHelia()
+const helia = await createHelia({
+  blockstore: new FsBlockstore('./ipfs'),
+})
 const heliaDagCbor = dagCbor(helia)
 
 //
