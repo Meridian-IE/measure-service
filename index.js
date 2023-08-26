@@ -15,7 +15,7 @@ import { FsBlockstore } from 'blockstore-fs'
 const {
   IE_CONTRACT_ADDRESS = '0xedb63b83ca55233432357a7aa2b150407f8ea256',
   WALLET_SEED = 'test test test test test test test test test test test junk',
-  RPC_URL = 'https://api.calibration.node.glif.io/rpc/v1',
+  RPC_URL = 'https://api.calibration.node.glif.io/rpc/v0',
 } = process.env
 
 // Set up contract
