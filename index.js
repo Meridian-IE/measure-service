@@ -9,7 +9,6 @@ import { ethers } from 'ethers'
 import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { db } from './lib/db.js'
-import pRetry from 'p-retry'
 import { FsBlockstore } from 'blockstore-fs'
 
 // Configuration
@@ -86,26 +85,8 @@ const publish = async () => {
 
   // Call contract with CID
   console.log('ie.addMeasurement()...')
-  const tx = await pRetry(
-    async () => {
-      try {
-        return await ieContractWithSigner.addMeasurement(cid.toString())
-      } catch (err) {
-        console.error('addMeasurement()', err)
-      }
-    },
-    30
-  )
-  const receipt = await pRetry(
-    async () => {
-      try {
-        return await tx.wait()
-      } catch (err) {
-        console.error('tx.wait()', err)
-      }
-    },
-    10
-  )
+  const tx = await ieContractWithSigner.addMeasurement(cid.toString())
+  const receipt = await tx.wait()
   const event = receipt.events.find(e => e.event === 'MeasurementAdded')
   const { roundIndex } = event.args
   console.log('Measurements added to round', roundIndex.toString())
