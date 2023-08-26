@@ -94,11 +94,6 @@ const publish = async () => {
     m.cid = cid
   }
 
-  // List measurements
-  console.log('ie.getRound()...')
-  const round = await ieContract.getRound(roundIndex)
-  console.log('Measurements this round:')
-  console.log(round[1])
   console.log('Done!')
 }
 
