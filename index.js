@@ -10,6 +10,7 @@ import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { db } from './lib/db.js'
 import { FsBlockstore } from 'blockstore-fs'
+import { newDelegatedEthAddress } from '@glif/filecoin-address'
 
 // Configuration
 const {
@@ -33,6 +34,11 @@ const ieContract = new ethers.Contract(
   provider
 )
 const ieContractWithSigner = ieContract.connect(signer)
+console.log(
+  'Wallet address:',
+  signer.address,
+  newDelegatedEthAddress(signer.address, 't').toString()
+)
 
 // Set up IPFS
 const helia = await createHelia({

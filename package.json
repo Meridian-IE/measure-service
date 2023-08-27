@@ -1,6 +1,7 @@
 {
   "type": "module",
   "dependencies": {
+    "@glif/filecoin-address": "^2.0.43",
     "@helia/dag-cbor": "^0.0.0",
     "blockstore-fs": "^1.1.5",
     "ethers": "^5.7.2",
