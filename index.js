@@ -3,20 +3,19 @@ import assert from 'http-assert'
 import { validate } from './lib/validate.js'
 import timers from 'node:timers/promises'
 import http from 'node:http'
-import { createHelia } from 'helia'
-import { dagCbor } from '@helia/dag-cbor'
 import { ethers } from 'ethers'
 import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { db } from './lib/db.js'
-import { FsBlockstore } from 'blockstore-fs'
 import { newDelegatedEthAddress } from '@glif/filecoin-address'
+import { Web3Storage } from 'web3.storage'
 
 // Configuration
 const {
   IE_CONTRACT_ADDRESS = '0xedb63b83ca55233432357a7aa2b150407f8ea256',
   WALLET_SEED = 'test test test test test test test test test test test junk',
   RPC_URL = 'https://api.calibration.node.glif.io/rpc/v0',
+  WEB3_STORAGE_API_TOKEN
 } = process.env
 
 // Set up contract
@@ -40,11 +39,7 @@ console.log(
   newDelegatedEthAddress(signer.address, 't').toString()
 )
 
-// Set up IPFS
-const helia = await createHelia({
-  blockstore: new FsBlockstore('./ipfs'),
-})
-const heliaDagCbor = dagCbor(helia)
+const web3Storage = new Web3Storage({ token: WEB3_STORAGE_API_TOKEN })
 
 //
 // Phase 1: Store the measurements
@@ -85,9 +80,9 @@ const publish = async () => {
   console.log(`Publishing ${measurements.length} measurements`)
 
   // Share measurements
-  const cid = await heliaDagCbor.add(measurements)
+  const file = new File([JSON.stringify(measurements)], 'measurements.json', { type: 'application/json' })
+  const cid = await web3Storage.put([file])
   console.log(`Measurements packaged in ${cid}`)
-  await helia.pins.add(cid)
 
   // Call contract with CID
   console.log('ie.addMeasurement()...')
@@ -96,9 +91,6 @@ const publish = async () => {
   const event = receipt.events.find(e => e.event === 'MeasurementAdded')
   const { roundIndex } = event.args
   console.log('Measurements added to round', roundIndex.toString())
-
-  // Prepare cleanup
-  db.cids.push({ cid, roundIndex })
 
   // Mark measurements as shared
   for (const m of measurements) {
@@ -110,22 +102,9 @@ const publish = async () => {
 
 const startPublishLoop = async () => {
   while (true) {
-    await publish()
-    await timers.setTimeout(10_000)
+    publish().catch(console.error)
+    await timers.setTimeout(30_000)
   }
 }
 
 startPublishLoop()
-
-//
-// Cleanup
-//
-ieContract.on('RoundStart', (roundIndex) => {
-  console.log('Event: RoundStart', roundIndex.toString())
-  const cids = db.cids.filter(c => c.roundIndex.lt(roundIndex.sub(1)))
-  for (const { cid } of cids) {
-    console.log('Unpinning', cid)
-    helia.pins.rm(cid).catch(console.error)
-  }
-  db.cids = db.cids.filter(c => !cids.includes(c))
-})
