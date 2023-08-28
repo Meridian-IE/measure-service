@@ -103,7 +103,7 @@ const publish = async () => {
 const startPublishLoop = async () => {
   while (true) {
     publish().catch(console.error)
-    await timers.setTimeout(30_000)
+    await timers.setTimeout(120_000)
   }
 }
 
