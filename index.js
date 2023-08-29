@@ -12,7 +12,7 @@ import { Web3Storage } from 'web3.storage'
 
 // Configuration
 const {
-  IE_CONTRACT_ADDRESS = '0xedb63b83ca55233432357a7aa2b150407f8ea256',
+  IE_CONTRACT_ADDRESS = '0x816830a1e536784ecb37cf97dfd7a98a82c86643',
   WALLET_SEED = 'test test test test test test test test test test test junk',
   RPC_URL = 'https://api.calibration.node.glif.io/rpc/v0',
   WEB3_STORAGE_API_TOKEN
@@ -85,10 +85,10 @@ const publish = async () => {
   console.log(`Measurements packaged in ${cid}`)
 
   // Call contract with CID
-  console.log('ie.addMeasurement()...')
-  const tx = await ieContractWithSigner.addMeasurement(cid.toString())
+  console.log('ie.addMeasurements()...')
+  const tx = await ieContractWithSigner.addMeasurements(cid.toString())
   const receipt = await tx.wait()
-  const event = receipt.events.find(e => e.event === 'MeasurementAdded')
+  const event = receipt.events.find(e => e.event === 'MeasurementsAdded')
   const { roundIndex } = event.args
   console.log('Measurements added to round', roundIndex.toString())
 
