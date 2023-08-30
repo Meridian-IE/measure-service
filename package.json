@@ -2,6 +2,7 @@
   "type": "module",
   "dependencies": {
     "@glif/filecoin-address": "^2.0.43",
+    "@zondax/filecoin-signing-tools": "^2.4.2",
     "ethers": "^5.7.2",
     "http-assert": "^1.5.0",
     "raw-body": "^2.5.2",

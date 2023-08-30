@@ -20,6 +20,7 @@ const {
 
 // Set up contract
 const provider = new ethers.providers.JsonRpcProvider(RPC_URL)
+// provider.on('debug', d => console.log(JSON.stringify(d, null, 2)))
 const signer = ethers.Wallet.fromMnemonic(WALLET_SEED).connect(provider)
 
 const ieContract = new ethers.Contract(
@@ -32,6 +33,7 @@ const ieContract = new ethers.Contract(
   ),
   provider
 )
+// console.log('count', await ieContract.currentRoundMeasurementCount())
 const ieContractWithSigner = ieContract.connect(signer)
 console.log(
   'Wallet address:',
