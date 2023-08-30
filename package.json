@@ -1,5 +1,8 @@
 {
   "type": "module",
+  "scripts": {
+    "test": "standard"
+  },
   "dependencies": {
     "@glif/filecoin-address": "^2.0.43",
     "@zondax/filecoin-signing-tools": "^2.4.2",
@@ -7,5 +10,8 @@
     "http-assert": "^1.5.0",
     "raw-body": "^2.5.2",
     "web3.storage": "^4.5.5"
+  },
+  "devDependencies": {
+    "standard": "^17.1.0"
   }
 }
