@@ -33,7 +33,6 @@ const ieContract = new ethers.Contract(
   ),
   provider
 )
-// console.log('count', await ieContract.currentRoundMeasurementCount())
 const ieContractWithSigner = ieContract.connect(signer)
 console.log(
   'Wallet address:',
