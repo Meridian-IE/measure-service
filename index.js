@@ -12,15 +12,15 @@ import { Web3Storage } from 'web3.storage'
 
 // Configuration
 const {
-  IE_CONTRACT_ADDRESS = '0x816830a1e536784ecb37cf97dfd7a98a82c86643',
+  IE_CONTRACT_ADDRESS = '0xec9b41341ebc7bc89eefb2165a81a06144029d0f',
   WALLET_SEED = 'test test test test test test test test test test test junk',
-  RPC_URL = 'https://api.calibration.node.glif.io/rpc/v0',
+  RPC_URL = 'https://alpha.subnet.ipc.space/rpc/v1',
   WEB3_STORAGE_API_TOKEN
 } = process.env
 
 // Set up contract
 const provider = new ethers.providers.JsonRpcProvider(RPC_URL)
-// provider.on('debug', d => console.log(JSON.stringify(d, null, 2)))
+provider.on('debug', d => console.log(JSON.stringify(d, null, 2)))
 const signer = ethers.Wallet.fromMnemonic(WALLET_SEED).connect(provider)
 
 const ieContract = new ethers.Contract(
@@ -33,6 +33,7 @@ const ieContract = new ethers.Contract(
   ),
   provider
 )
+console.log('round index:', await ieContract.currentRoundMeasurementCount())
 const ieContractWithSigner = ieContract.connect(signer)
 console.log(
   'Wallet address:',
