@@ -41,6 +41,7 @@ console.log(
 )
 // await ieContractWithSigner.setRoundReward(ethers.utils.parseUnits('1.0', 'ether'))
 // await ieContractWithSigner.setNextRoundLength(60)
+// await ieContractWithSigner.grantRole(ieContractWithSigner.EVALUATE_ROLE(), '0xB0a808b5C49f5Ed7Af9EcAAaF033B2d937692877')
 
 
 const web3Storage = new Web3Storage({ token: WEB3_STORAGE_API_TOKEN })
