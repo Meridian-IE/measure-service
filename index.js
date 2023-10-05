@@ -39,7 +39,7 @@ console.log(
   signer.address,
   newDelegatedEthAddress(signer.address, 't').toString()
 )
-// await ieContractWithSigner.setRoundReward(ethers.BigNumber.from('1000000000000000000'))
+// await ieContractWithSigner.setRoundReward(ethers.utils.parseUnits('1.0', 'ether'))
 // await ieContractWithSigner.setNextRoundLength(60)
 
 
