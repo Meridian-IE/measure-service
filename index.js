@@ -12,7 +12,7 @@ import { Web3Storage } from 'web3.storage'
 
 // Configuration
 const {
-  IE_CONTRACT_ADDRESS = '0x816830a1e536784ecb37cf97dfd7a98a82c86643',
+  IE_CONTRACT_ADDRESS = '0x3113b83ccec38a18df936f31297de490485d7b2e',
   WALLET_SEED = 'test test test test test test test test test test test junk',
   RPC_URL = 'https://api.calibration.node.glif.io/rpc/v0',
   WEB3_STORAGE_API_TOKEN
@@ -39,6 +39,9 @@ console.log(
   signer.address,
   newDelegatedEthAddress(signer.address, 't').toString()
 )
+// await ieContractWithSigner.setRoundReward(ethers.BigNumber.from('1000000000000000000'))
+// await ieContractWithSigner.setNextRoundLength(60)
+
 
 const web3Storage = new Web3Storage({ token: WEB3_STORAGE_API_TOKEN })
 
